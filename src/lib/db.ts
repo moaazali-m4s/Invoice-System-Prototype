@@ -10,12 +10,38 @@ if (!fs.existsSync(dbPath)) {
     dbPath = fallback;
   }
 }
-const dataDir = path.dirname(dbPath);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+
+// VERCEL FIX: Vercel serverless functions have a read-only filesystem except for /tmp.
+// better-sqlite3 requires a writable filesystem to open the database file.
+if (process.env.VERCEL) {
+  const vercelDbPath = path.join('/tmp', 'prototype_studio.db');
+  
+  // If the DB doesn't exist in /tmp yet (cold start), copy it from the bundled deployment
+  if (!fs.existsSync(vercelDbPath) && fs.existsSync(dbPath)) {
+    try {
+      fs.copyFileSync(dbPath, vercelDbPath);
+    } catch (e) {
+      console.error('Failed to copy bundled DB to /tmp:', e);
+    }
+  }
+  
+  dbPath = vercelDbPath;
+} else {
+  const dataDir = path.dirname(dbPath);
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
-const db = new Database(dbPath);
+let db: any;
+try {
+  db = new Database(dbPath);
+} catch (error) {
+  console.error("Failed to initialize database at", dbPath, error);
+  // Fallback to in-memory if disk fails entirely
+  db = new Database(':memory:');
+}
+
 
 // Enable WAL mode & busy timeout
 try {

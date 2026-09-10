@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['better-sqlite3', 'puppeteer'],
+    serverComponentsExternalPackages: ['better-sqlite3', 'puppeteer', 'puppeteer-core', '@sparticuz/chromium'],
   },
   webpack: (config) => {
     config.resolve.alias.canvas = false;
